@@ -1,0 +1,26 @@
+# =========================================================================
+#  حماية وإعدادات مشروع نظام استعلام نتائج الطلاب (Noon Project)
+# =========================================================================
+
+# 1. منع تصفح المجلدات (Security: Disable Directory Browsing)
+Options -Indexes
+
+# 2. ضبط الترميز الافتراضي إلى UTF-8
+AddDefaultCharset UTF-8
+
+# 3. حماية ملفات الكاش والحسابات من التصفح المباشر عبر المتصفح
+<FilesMatch "\.(json|csv|log)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 4. تفعيل الضغط لتسريع التحميل على الهواتف (GZIP Compression)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# 5. حماية إضافية للترويسة (Security Headers)
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>

@@ -1,0 +1,9 @@
+# ملفات الكاش المؤقتة
+cache/*
+!cache/.gitkeep
+sheets_cache.json
+
+# ملفات بيئة التطوير المحلية
+.DS_Store
+Thumbs.db
+*.log
