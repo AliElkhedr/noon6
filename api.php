@@ -21,7 +21,7 @@ header('Access-Control-Allow-Origin: *');
 // =========================================================================
 //  معرف جدول بيانات جوجل أو الرابط المنشور 2PACX...
 // =========================================================================
-$SPREADSHEET_ID = "ضع_معرف_شيت_جوجل_هنا";
+$SPREADSHEET_ID = "ضع_معرف_جدول_البيانات_هنا";
 
 $action = $_GET['action'] ?? '';
 
@@ -189,32 +189,81 @@ function getSheetsCached($spreadsheetInput) {
 }
 
 function getSheetsFromGoogleDirect($spreadsheetInput) {
-    $pubUrl = buildPubHtmlUrl($spreadsheetInput);
-    $html = fetchUrlFast($pubUrl);
-
+    $input = trim($spreadsheetInput);
     $sheets = [];
 
-    if ($html) {
-        if (preg_match_all('/<li\s+id="sheet-button-([0-9]+)"[^>]*><a[^>]*>(.*?)<\/a>/i', $html, $matches, PREG_SET_ORDER)) {
+    $urlsToTry = [];
+
+    if (strpos($input, '2PACX-') !== false || strpos($input, '/pub') !== false) {
+        if (preg_match('/2PACX-[a-zA-Z0-9_-]+/', $input, $matches)) {
+            $urlsToTry[] = "https://docs.google.com/spreadsheets/d/e/{$matches[0]}/pubhtml";
+        }
+    } else {
+        if (preg_match('/\/d\/([a-zA-Z0-9_-]+)/', $input, $matches)) {
+            $sheetId = $matches[1];
+        } else {
+            $sheetId = $input;
+        }
+        $urlsToTry[] = "https://docs.google.com/spreadsheets/d/{$sheetId}/htmlview";
+        $urlsToTry[] = "https://docs.google.com/spreadsheets/d/{$sheetId}/pubhtml";
+    }
+
+    foreach ($urlsToTry as $url) {
+        $html = fetchUrlFast($url);
+        if (!$html) continue;
+
+        // Pattern 1: name & gid في كود الجافاسكربت
+        if (preg_match_all('/(?:name|caption)\s*:\s*["\']([^"\']+)["\'].*?gid\s*:\s*["\']?([0-9]+)["\']?/i', $html, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $m) {
-                $gid = $m[1];
-                $name = trim(strip_tags($m[2]));
-                if (!empty($name)) {
+                $name = trim($m[1]);
+                $gid = $m[2];
+                if (!empty($name) && !isset($sheets[$name])) {
                     $sheets[$name] = $gid;
                 }
             }
         }
 
+        // Pattern 2: sheetId & name في JSON
         if (empty($sheets)) {
-            if (preg_match_all('/(?:name|caption)\s*:\s*["\']([^"\']+)["\'].*?gid\s*:\s*["\']?([0-9]+)["\']?/i', $html, $matches, PREG_SET_ORDER)) {
+            if (preg_match_all('/\{\s*"sheetId"\s*:\s*([0-9]+)\s*,\s*"name"\s*:\s*"([^"]+)"/i', $html, $matches, PREG_SET_ORDER)) {
                 foreach ($matches as $m) {
-                    $name = trim($m[1]);
-                    $gid = $m[2];
-                    if (!empty($name)) {
+                    $gid = $m[1];
+                    $name = trim($m[2]);
+                    if (!empty($name) && !isset($sheets[$name])) {
                         $sheets[$name] = $gid;
                     }
                 }
             }
+        }
+
+        // Pattern 3: قائمة الأزرار sheet-button في pubhtml
+        if (empty($sheets)) {
+            if (preg_match_all('/<li\s+id="sheet-button-([0-9]+)"[^>]*><a[^>]*>(.*?)<\/a>/i', $html, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $m) {
+                    $gid = $m[1];
+                    $name = trim(strip_tags($m[2]));
+                    if (!empty($name) && !isset($sheets[$name])) {
+                        $sheets[$name] = $gid;
+                    }
+                }
+            }
+        }
+
+        // Pattern 4: أي روابط تحتوي على gid= وتسمية نصية
+        if (empty($sheets)) {
+            if (preg_match_all('/href="[^"]*gid=([0-9]+)[^"]*"[^>]*>(.*?)<\/a>/i', $html, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $m) {
+                    $gid = $m[1];
+                    $name = trim(strip_tags($m[2]));
+                    if (!empty($name) && !isset($sheets[$name]) && strpos($name, 'Google') === false) {
+                        $sheets[$name] = $gid;
+                    }
+                }
+            }
+        }
+
+        if (!empty($sheets)) {
+            break;
         }
     }
 
@@ -231,13 +280,13 @@ function fetchUrlFast($url) {
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
         curl_setopt($ch, CURLOPT_ENCODING, '');
-        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         $output = curl_exec($ch);
         curl_close($ch);
         if ($output !== false && strlen($output) > 0) {
@@ -251,8 +300,8 @@ function fetchUrlFast($url) {
             'verify_peer_name' => false,
         ],
         'http' => [
-            'timeout' => 8,
-            'header'  => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\nAccept-Encoding: gzip, deflate\r\n"
+            'timeout' => 15,
+            'header'  => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\nAccept-Encoding: gzip, deflate\r\n"
         ]
     ]);
     $data = @file_get_contents($url, false, $context);

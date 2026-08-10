@@ -91,24 +91,58 @@ export default async function handler(req, res) {
 }
 
 async function getSheetsFromGoogle(spreadsheetInput) {
-    const pubUrl = buildPubHtmlUrl(spreadsheetInput);
+    const input = spreadsheetInput.trim();
     const sheets = {};
-    try {
-        const response = await fetch(pubUrl);
-        if (response.ok) {
-            const html = await response.text();
-            const regex = /<li\s+id="sheet-button-([0-9]+)"[^>]*><a[^>]*>(.*?)<\/a>/gi;
-            let match;
-            while ((match = regex.exec(html)) !== null) {
-                const gid = match[1];
-                const name = match[2].replace(/<[^>]*>/g, '').trim();
-                if (name) {
-                    sheets[name] = gid;
+    const urlsToTry = [];
+
+    if (input.includes('2PACX-') || input.includes('/pub')) {
+        const match = input.match(/2PACX-[a-zA-Z0-9_-]+/);
+        if (match) {
+            urlsToTry.push(`https://docs.google.com/spreadsheets/d/e/${match[0]}/pubhtml`);
+        }
+    } else {
+        const match = input.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        const sheetId = match ? match[1] : input;
+        urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/htmlview`);
+        urlsToTry.push(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);
+    }
+
+    for (const url of urlsToTry) {
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const html = await response.text();
+
+                // Pattern 1: name & gid في كود الجافاسكربت
+                const regex1 = /(?:name|caption)\s*:\s*["\']([^"\']+)["\'].*?gid\s*:\s*["\']?([0-9]+)["\']?/gi;
+                let m;
+                while ((m = regex1.exec(html)) !== null) {
+                    const name = m[1].trim();
+                    const gid = m[2];
+                    if (name && !sheets[name]) {
+                        sheets[name] = gid;
+                    }
+                }
+
+                // Pattern 2: sheet-button في HTML
+                if (Object.keys(sheets).length === 0) {
+                    const regex2 = /<li\s+id="sheet-button-([0-9]+)"[^>]*><a[^>]*>(.*?)<\/a>/gi;
+                    while ((m = regex2.exec(html)) !== null) {
+                        const gid = m[1];
+                        const name = m[2].replace(/<[^>]*>/g, '').trim();
+                        if (name && !sheets[name]) {
+                            sheets[name] = gid;
+                        }
+                    }
+                }
+
+                if (Object.keys(sheets).length > 0) {
+                    break;
                 }
             }
+        } catch (e) {
+            console.error("Error fetching sheets html", e);
         }
-    } catch (e) {
-        console.error("Error fetching sheets html", e);
     }
 
     if (Object.keys(sheets).length === 0) {
