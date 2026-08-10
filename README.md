@@ -76,7 +76,9 @@ const CONFIG = {
 هذا المشروع مفتوح المصدر ومتاح مجاناً للجميع تحت ترخيص **[MIT License](LICENSE)**.
 
 - **تطوير:** [علي الخضر (Ali El-Khedr)](https://alielkhedr.com/)
-- **الموقع الرسمي للمطور:** [https://alielkhedr.com/](https://alielkhedr.com/)
+- **رابط مقالة الشرح:** [https://alielkhedr.com/](https://alielkhedr.com/)
+- **رابط المعاينة المباشرة:** https://alielkhedr.com/excel2web/noon6/index.html
+- **تجربة النظام:** أرقام جلوس تجريبية من 101 حتى 110
 
 *يُسمح بالاستخدام والتعديل والتكسّب الشريف، مع حفظ الحق الأدبي والأمانة العلمية بالإبقاء على إشارة للمطور الأصلي.*
 
