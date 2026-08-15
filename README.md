@@ -1,4 +1,4 @@
-# 🎓 نظام الاستعلام عن نتائج الطلاب (مشروع نون - Noon Results System)
+﻿# 🎓 نظام الاستعلام عن نتائج الطلاب (مشروع نون - Noon Results System)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Developer](https://img.shields.io/badge/%D8%AA%D8%B7%D9%88%D9%8A%D8%B1-%D8%B9%D9%84%D9%8A%20%D8%A7%D9%84%D8%AE%D6%B6%D8%B6%D8%B1-gold.svg)](https://alielkhedr.com/)
@@ -44,15 +44,15 @@ noon6/
 ### 1️⃣ الخطوة الأولى: تجهيز شيت جوجل (Google Sheets)
 1. افتح جدول بيانات جوجل المشتمل على النتائج.
 2. اجعل **العمود الأول** دائماً مخصصاً لـ (رقم الجلوس / رقم الطالب).
-3. اذهب إلى قائمة **ملف (File) -> مشاركة (Share) -> النشر على الويب (Publish to web)** ثم اضغط **نشر (Publish)**.
-4. انسخ معرف الجدول `SPREADSHEET_ID` من رابط الشيت الخاص بك:
-   `https://docs.google.com/spreadsheets/d/`**`ضع_المعرف_هنا`**`/edit`  
-   *(أو استخدم رابط النشر 2PACX... بالكامل).*
+3. اذهب إلى قائمة **ملف (File) -> مشاركة (Share) -> النشر على الويب (Publish to web)** اختر (كامل المستند) ثم اضغط **نشر (Publish)**.
+4. انسخ **معرف رابط النشر المنشور على الويب** `2PACX-...` (الموصى به):
+   - مثال: `2PACX-1vRxxxxxxxxx`
+   - *أو انسخ المعرف الأصلي من رابط التحرير بين `/d/` و `/edit`: `https://docs.google.com/spreadsheets/d/`**`ضع_المعرف_هنا`**`/edit`*
 
 ### 2️⃣ الخطوة الثانية: ضبط معرف الشيت في `api.php`
-افتح ملف [api.php](file:///f:/laragon/www/noon6/api.php) وعدّل السطر التالي بوضع معرف الشيت الخاص بك:
+افتح ملف [api.php](file:///f:/laragon/www/noon6/api.php) وعدّل السطر التالي بوضع معرف الشيت المنشور الخاص بك:
 ```php
-$SPREADSHEET_ID = "ضع_معرف_شيت_جوجل_هنا";
+$SPREADSHEET_ID = "2PACX-1vRxxxxxxxxx"; // أو المعرف الأصلي
 ```
 
 ### 3️⃣ الخطوة الثالثة: تخصيص اسم المدرسة في `index.html` و `result.html`
